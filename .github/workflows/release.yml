@@ -1,0 +1,61 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag against the package version
+        run: |
+          set -eux
+          version="${GITHUB_REF_NAME#v}"
+          package_version="$(python3 -c 'import debian_redos; print(debian_redos.__version__)')"
+          test "$version" = "$package_version"
+
+      - name: Build the source archive
+        run: |
+          set -eux
+          name="redos-analizator-${GITHUB_REF_NAME#v}"
+          # Stamp every member with the commit time: the archive is
+          # reproducible and unpacks without timestamp warnings.
+          epoch="$(git log -1 --format=%ct)"
+          git archive --format=tar.gz --prefix="${name}/" --mtime="@${epoch}" \
+            -o "${name}.tar.gz" HEAD
+          sha256sum "${name}.tar.gz" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Smoke test the archive
+        run: |
+          set -eux
+          tar xzf redos-analizator-*.tar.gz
+          cd redos-analizator-*/
+          python3 -m debian_redos.cli --version
+          python3 -m debian_redos.cli analyze-pattern '^(a+)+$' \
+            --language python --json > /dev/null
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eux
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" --clobber \
+              redos-analizator-*.tar.gz SHA256SUMS
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --title "redos-analizator ${GITHUB_REF_NAME#v}" \
+              --generate-notes \
+              redos-analizator-*.tar.gz SHA256SUMS
+          fi
+          gh release view "$GITHUB_REF_NAME" --json assets \
+            -q '.assets[] | "\(.name) \(.size) bytes"'

@@ -1,0 +1,5 @@
+redos-fixture (1.0-1) unstable; urgency=medium
+
+  * Synthetic fixture for the ReDoS scanner test suite.
+
+ -- Test Maintainer <test@example.com>  Mon, 01 Jan 2024 00:00:00 +0000

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "debian-redos"
+version = "0.1.0"
+description = "Static + dynamic ReDoS scanner for Debian-family source packages (Python, Ruby, PHP)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Astra ReDoS team" }]
+keywords = ["redos", "regexp", "debian", "security", "vulnerability", "sast"]
+dependencies = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+]
+
+[project.optional-dependencies]
+yaml = ["PyYAML>=5.4"]
+dev = ["pytest>=7"]
+external = ["regexploit>=1.0.1"]
+
+[project.scripts]
+debian-redos = "debian_redos.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/imoshkinlocal/redos-analizator"
+Issues = "https://github.com/imoshkinlocal/redos-analizator/issues"
+
+[tool.setuptools.packages.find]
+include = ["debian_redos*"]
+
+[tool.setuptools.package-data]
+debian_redos = ["data/*.json", "workers/*.rb", "workers/*.php"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "slow: tests that run the dynamic engine",
+]

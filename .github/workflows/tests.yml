@@ -1,0 +1,41 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install the interpreters used by the dynamic stage
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ruby php-cli
+
+      - name: Install the package
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run the test suite
+        run: python -m pytest
+
+      - name: Check the CLI
+        run: |
+          debian-redos --version
+          debian-redos analyze-pattern '^(a+)+$' --language python --json > /dev/null

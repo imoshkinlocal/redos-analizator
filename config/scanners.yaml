@@ -1,0 +1,132 @@
+# Debian ReDoS scanner configuration.
+#
+# Every key is optional: built-in defaults (debian_redos/config.py) are merged
+# with this file.  Only the sections below influence the cached result hash;
+# changing them invalidates static/dynamic caches automatically.
+
+languages:
+  python:
+    enabled: true
+    extensions: [".py", ".pyw"]
+    static: ["heuristics"]
+    dynamic: ["python_worker"]
+  ruby:
+    enabled: true
+    extensions: [".rb", ".rake", ".gemspec"]
+    static: ["heuristics"]
+    dynamic: ["ruby_worker"]
+  php:
+    enabled: true
+    extensions: [".php", ".php5", ".phtml", ".inc"]
+    static: ["heuristics"]
+    dynamic: ["php_worker"]
+
+limits:
+  # Patterns longer than this are recorded but not analysed.
+  max_pattern_length: 4096
+  # Generated attack strings are capped at this length.
+  max_input_length: 8192
+  # Wall-clock limit for one engine measurement.
+  timeout_seconds: 2.0
+  # Total time spent on one candidate (all attack shapes and sizes).
+  candidate_budget_seconds: 8.0
+  max_memory_mb: 256
+  max_file_size_kb: 2048
+  # 0 = no limit.
+  max_files: 0
+
+static:
+  # Minimum severity that reaches the report (info|low|medium|high|critical).
+  min_severity_to_report: info
+  # Also report structurally safe patterns.  Usually only useful for inventory.
+  report_safe: false
+  # Optional external detectors.  They are *not* required for the analysis.
+  enable_external: false
+  external:
+    regexploit:
+      command: regexploit
+      enabled: false
+    redoshunter:
+      command: redoshunter
+      enabled: false
+    codeql:
+      command: codeql
+      enabled: false
+      database: null
+
+dynamic:
+  enabled: true
+  # "auto" selects the native interpreter.  Use "regex" for the third-party
+  # Python module (the result then describes that module, not stdlib re).
+  engines:
+    python: auto
+    ruby: auto
+    php: auto
+  # PHP is executed natively when php-cli is on PATH; Docker is the fallback.
+  use_docker_for_php: true
+  php_docker_image: php:8.2-cli
+  # Attack shapes tested per pattern (prefix/pump/suffix variants).
+  max_candidates_per_finding: 4
+  growth:
+    noise_floor_ms: 0.5
+    confirm_ratio: 2.5
+    min_points: 3
+    exponential_slope_delta: 0.8
+  sizes:
+    # Keep the exponential ladder short: values above ~30 already take
+    # hundreds of milliseconds on a vulnerable pattern.
+    exponential: [8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 40, 48, 64, 96, 128]
+    polynomial: [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+
+cache:
+  enabled: true
+  backend: sqlite
+  # Relative paths are resolved from the working directory.
+  path: .redos-cache/redos.sqlite3
+
+discovery:
+  # Unpack .dsc with dpkg-source before scanning (slower, needs the tool).
+  unpack_dsc: false
+  workdir: null
+  max_depth: 12
+  follow_symlinks: false
+  exclude_dirs: [".git", ".svn", ".hg", "node_modules", "__pycache__", ".tox", ".venv", "venv", ".mypy_cache", ".pytest_cache", "build", "dist", ".eggs", ".pc"]
+
+output:
+  dir: reports
+  json: true
+  jsonl: true
+  html: true
+  sarif: true
+  summary: true
+
+severity:
+  # `scan` exits with 1 when a finding reaches this severity.
+  exit_code_on: high
+  report_min: info
+
+cve:
+  # Optional JSON map (see README) used only to *annotate* findings.
+  # The map itself never changes verdicts; opt-in CVE assignment from the
+  # known database is controlled by known.auto_assign_cve below.
+  db: null
+
+known:
+  # Compare findings with a local database of known ReDoS advisories.
+  enabled: true
+  # null => the bundled data/known_redos.json.  Set a path to use a local
+  # (possibly extended) database instead.
+  db: null
+  # Minimum similarity for fuzzy matching (0..1).  Exact/canonical/shape/core
+  # matches are structural and are always reported.
+  min_score: 0.78
+  # Match the dangerous sub-expression when the surrounding regexp differs.
+  match_core: true
+  # Annotate advisories that have no pattern with a package-name match.
+  match_packages: true
+  # Maximum number of known matches attached to one finding (0 = unlimited).
+  max_matches: 5
+  # A match is an annotation.  Enable this only if you want the scanner to
+  # populate the finding's CVE field from exact/canonical matches.
+  auto_assign_cve: false
+  auto_assign_min_score: 0.95

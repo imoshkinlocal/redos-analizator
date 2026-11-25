@@ -1,0 +1,226 @@
+{
+    "schema_version": "1.0",
+    "updated": "2026-11-06",
+    "notes": [
+        "Starter database of verified Ruby ReDoS advisories. Extend it with distribution advisories or vendor-specific patterns."
+    ],
+    "entries": [
+        {
+            "id": "CVE-2023-28756",
+            "cve": "CVE-2023-28756",
+            "title": "ReDoS in Ruby Time.rfc2822 date parsing",
+            "language": "ruby",
+            "severity": "high",
+            "packages": [
+                "ruby",
+                "ruby-time",
+                "time"
+            ],
+            "affected": [
+                "ruby < 3.1.4 (bundled time gem)",
+                "time gem < 0.2.2"
+            ],
+            "references": [
+                "https://www.ruby-lang.org/en/news/2023/03/28/redos-in-time-cve-2023-28756/",
+                "https://github.com/ruby/ruby/commit/51034bda4c1d9977e0d49bd6329eed9ed6ca19c9"
+            ],
+            "notes": [
+                "The fix makes the RFC 2822 regexp linear by removing overlapping whitespace quantifiers.",
+                "Both patterns are matched with the extended (x) and case-insensitive (i) flags used by lib/time.rb."
+            ],
+            "patterns": [
+                {
+                    "pattern": "\\A\\s*\n          (?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\\s*,\\s*)?\n          (\\d{1,2})\\s+\n          (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+\n          (\\d{2,})\\s+\n          (\\d{2})\\s*\n          :\\s*(\\d{2})\\s*\n          (?::\\s*(\\d{2}))?\\s+\n          ([+-]\\d{4}|\n           UT|GMT|EST|EDT|CST|CDT|MST|MDT|PST|PDT|[A-IK-Z])",
+                    "flags": "ix",
+                    "status": "vulnerable"
+                },
+                {
+                    "pattern": "\\A\\s*\n          (?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\\s*,\\s*)?\n          (\\d{1,2})\\s+\n          (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+\n          (\\d{2,})\\s+\n          (\\d{2})\\s*\n          :\\s*(\\d{2})\n          (?:\\s*:\\s*(\\d\\d))?\\s+\n          ([+-]\\d{4}|\n           UT|GMT|EST|EDT|CST|CDT|MST|MDT|PST|PDT|[A-IK-Z])",
+                    "flags": "ix",
+                    "status": "fixed",
+                    "note": "patched variant from Ruby 3.1.4"
+                }
+            ]
+        },
+        {
+            "id": "CVE-2023-36617",
+            "cve": "CVE-2023-36617",
+            "title": "ReDoS in Ruby URI parser (rfc2396/rfc3986), incomplete fix of CVE-2023-28755",
+            "language": "ruby",
+            "severity": "medium",
+            "packages": [
+                "ruby",
+                "ruby-uri",
+                "uri"
+            ],
+            "affected": [
+                "ruby < 3.1.5 (bundled uri)",
+                "uri gem < 0.12.2 (also 0.11.2 / 0.10.3)"
+            ],
+            "references": [
+                "https://www.ruby-lang.org/en/news/2023/06/29/redos-in-uri-cve-2023-36617/",
+                "https://github.com/ruby/ruby/pull/7996"
+            ],
+            "notes": [
+                "The URI parser mishandles invalid URLs with specific characters; both rfc2396_parser.rb and rfc3986_parser.rb are affected.",
+                "This is an incomplete fix of CVE-2023-28755. The extracted PORT expression shows the remaining ambiguity between the leading and trailing whitespace runs.",
+                "The fix makes the whitespace/character-class quantifiers possessive (e.g. \\s*+ and [\\x09\\x0a\\x0c\\x0d ]*+)."
+            ],
+            "patterns": [
+                {
+                    "pattern": "\\A[\\x09\\x0a\\x0c\\x0d ]*\\d*[\\x09\\x0a\\x0c\\x0d ]*\\z",
+                    "flags": "",
+                    "status": "vulnerable",
+                    "witness": {
+                        "prefix": "",
+                        "pump": " ",
+                        "suffix": "!",
+                        "breaker": "",
+                        "kind": "polynomial",
+                        "note": "spaces followed by a non-digit make the two whitespace runs overlap"
+                    }
+                },
+                {
+                    "pattern": "\\A[\\x09\\x0a\\x0c\\x0d ]*+\\d*[\\x09\\x0a\\x0c\\x0d ]*\\z",
+                    "flags": "",
+                    "status": "fixed",
+                    "note": "patched variant with possessive quantifiers (Ruby 3.1.5)"
+                }
+            ]
+        },
+        {
+            "id": "CVE-2023-28755",
+            "cve": "CVE-2023-28755",
+            "title": "ReDoS in Ruby URI RFC3986 parser",
+            "language": "ruby",
+            "severity": "high",
+            "packages": [
+                "ruby",
+                "ruby-uri",
+                "uri"
+            ],
+            "affected": [
+                "ruby < 3.1.4 (uri 0.11.0)",
+                "uri gem < 0.11.1"
+            ],
+            "references": [
+                "https://www.ruby-lang.org/en/news/2023/03/28/redos-in-uri-cve-2023-28755/",
+                "https://github.com/ruby/ruby/pull/7741"
+            ],
+            "notes": [
+                "The two large expressions are RFC3986_URI and RFC3986_relative_ref from lib/uri/rfc3986_parser.rb.",
+                "The fix makes the ambiguous quantifiers possessive; the vulnerable and fixed variants are both recorded so a patched tree is not reported."
+            ],
+            "patterns": [
+                {
+                    "pattern": "\\A(?<URI>(?<scheme>[A-Za-z][+\\-.0-9A-Za-z]*):(?<hier-part>\\/\\/(?<authority>(?:(?<userinfo>(?:%\\h\\h|[!$&-.0-;=A-Z_a-z~])*)@)?(?<host>(?<IP-literal>\\[(?:(?<IPv6address>(?:\\h{1,4}:){6}(?<ls32>\\h{1,4}:\\h{1,4}|(?<IPv4address>(?<dec-octet>[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5]|\\d)\\.\\g<dec-octet>\\.\\g<dec-octet>\\.\\g<dec-octet>))|::(?:\\h{1,4}:){5}\\g<ls32>|\\h{1,4}?::(?:\\h{1,4}:){4}\\g<ls32>|(?:(?:\\h{1,4}:)?\\h{1,4})?::(?:\\h{1,4}:){3}\\g<ls32>|(?:(?:\\h{1,4}:){,2}\\h{1,4})?::(?:\\h{1,4}:){2}\\g<ls32>|(?:(?:\\h{1,4}:){,3}\\h{1,4})?::\\h{1,4}:\\g<ls32>|(?:(?:\\h{1,4}:){,4}\\h{1,4})?::\\g<ls32>|(?:(?:\\h{1,4}:){,5}\\h{1,4})?::\\h{1,4}|(?:(?:\\h{1,4}:){,6}\\h{1,4})?::)|(?<IPvFuture>v\\h+\\.[!$&-.0-;=A-Z_a-z~]+))\\])|\\g<IPv4address>|(?<reg-name>(?:%\\h\\h|[!$&-.0-9;=A-Z_a-z~])+))?(?::(?<port>\\d*))?)(?<path-abempty>(?:\\/(?<segment>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~])*))*)|(?<path-absolute>\\/(?:(?<segment-nz>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~])+)(?:\\/\\g<segment>)*)?)|(?<path-rootless>\\g<segment-nz>(?:\\/\\g<segment>)*)|(?<path-empty>))(?:\\?(?<query>[^#]*))?(?:\\#(?<fragment>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~\\/?])*))?)\\z",
+                    "flags": "",
+                    "status": "vulnerable",
+                    "witness": {
+                        "prefix": "https://example.com/dir/",
+                        "pump": "a",
+                        "suffix": "/##.jpg",
+                        "breaker": "",
+                        "kind": "polynomial",
+                        "note": "reproducer from the upstream regression test (quadratic on invalid URI)"
+                    }
+                },
+                {
+                    "pattern": "\\A(?<relative-ref>(?<relative-part>\\/\\/(?<authority>(?:(?<userinfo>(?:%\\h\\h|[!$&-.0-;=A-Z_a-z~])*)@)?(?<host>(?<IP-literal>\\[(?<IPv6address>(?:\\h{1,4}:){6}(?<ls32>\\h{1,4}:\\h{1,4}|(?<IPv4address>(?<dec-octet>[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5]|\\d)\\.\\g<dec-octet>\\.\\g<dec-octet>\\.\\g<dec-octet>))|::(?:\\h{1,4}:){5}\\g<ls32>|\\h{1,4}?::(?:\\h{1,4}:){4}\\g<ls32>|(?:(?:\\h{1,4}:){,1}\\h{1,4})?::(?:\\h{1,4}:){3}\\g<ls32>|(?:(?:\\h{1,4}:){,2}\\h{1,4})?::(?:\\h{1,4}:){2}\\g<ls32>|(?:(?:\\h{1,4}:){,3}\\h{1,4})?::\\h{1,4}:\\g<ls32>|(?:(?:\\h{1,4}:){,4}\\h{1,4})?::\\g<ls32>|(?:(?:\\h{1,4}:){,5}\\h{1,4})?::\\h{1,4}|(?:(?:\\h{1,4}:){,6}\\h{1,4})?::)|(?<IPvFuture>v\\h+\\.[!$&-.0-;=A-Z_a-z~]+)\\])|\\g<IPv4address>|(?<reg-name>(?:%\\h\\h|[!$&-.0-9;=A-Z_a-z~])+))?(?::(?<port>\\d*))?)(?<path-abempty>(?:\\/(?<segment>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~])*))*)|(?<path-absolute>\\/(?:(?<segment-nz>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~])+)(?:\\/\\g<segment>)*)?)|(?<path-noscheme>(?<segment-nz-nc>(?:%\\h\\h|[!$&-.0-9;=@-Z_a-z~])+)(?:\\/\\g<segment>)*)|(?<path-empty>))(?:\\?(?<query>[^#]*))?(?:\\#(?<fragment>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~\\/?])*))?)\\z",
+                    "flags": "",
+                    "status": "vulnerable"
+                },
+                {
+                    "pattern": "\\A(?<URI>(?<scheme>[A-Za-z][+\\-.0-9A-Za-z]*+):(?<hier-part>\\/\\/(?<authority>(?:(?<userinfo>(?:%\\h\\h|[!$&-.0-;=A-Z_a-z~])*+)@)?(?<host>(?<IP-literal>\\[(?:(?<IPv6address>(?:\\h{1,4}:){6}(?<ls32>\\h{1,4}:\\h{1,4}|(?<IPv4address>(?<dec-octet>[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5]|\\d)\\.\\g<dec-octet>\\.\\g<dec-octet>\\.\\g<dec-octet>))|::(?:\\h{1,4}:){5}\\g<ls32>|\\h{1,4}?::(?:\\h{1,4}:){4}\\g<ls32>|(?:(?:\\h{1,4}:)?\\h{1,4})?::(?:\\h{1,4}:){3}\\g<ls32>|(?:(?:\\h{1,4}:){,2}\\h{1,4})?::(?:\\h{1,4}:){2}\\g<ls32>|(?:(?:\\h{1,4}:){,3}\\h{1,4})?::\\h{1,4}:\\g<ls32>|(?:(?:\\h{1,4}:){,4}\\h{1,4})?::\\g<ls32>|(?:(?:\\h{1,4}:){,5}\\h{1,4})?::\\h{1,4}|(?:(?:\\h{1,4}:){,6}\\h{1,4})?::)|(?<IPvFuture>v\\h++\\.[!$&-.0-;=A-Z_a-z~]++))\\])|\\g<IPv4address>|(?<reg-name>(?:%\\h\\h|[!$&-.0-9;=A-Z_a-z~])*+))(?::(?<port>\\d*+))?)(?<path-abempty>(?:\\/(?<segment>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~])*+))*+)|(?<path-absolute>\\/(?:(?<segment-nz>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~])++)(?:\\/\\g<segment>)*+)?)|(?<path-rootless>\\g<segment-nz>(?:\\/\\g<segment>)*+)|(?<path-empty>))(?:\\?(?<query>[^#]*+))?(?:\\#(?<fragment>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~\\/?])*+))?)\\z",
+                    "flags": "",
+                    "status": "fixed",
+                    "note": "patched variant from Ruby 3.1.4"
+                },
+                {
+                    "pattern": "\\A(?<relative-ref>(?<relative-part>\\/\\/(?<authority>(?:(?<userinfo>(?:%\\h\\h|[!$&-.0-;=A-Z_a-z~])*+)@)?(?<host>(?<IP-literal>\\[(?:(?<IPv6address>(?:\\h{1,4}:){6}(?<ls32>\\h{1,4}:\\h{1,4}|(?<IPv4address>(?<dec-octet>[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5]|\\d)\\.\\g<dec-octet>\\.\\g<dec-octet>\\.\\g<dec-octet>))|::(?:\\h{1,4}:){5}\\g<ls32>|\\h{1,4}?::(?:\\h{1,4}:){4}\\g<ls32>|(?:(?:\\h{1,4}:){,1}\\h{1,4})?::(?:\\h{1,4}:){3}\\g<ls32>|(?:(?:\\h{1,4}:){,2}\\h{1,4})?::(?:\\h{1,4}:){2}\\g<ls32>|(?:(?:\\h{1,4}:){,3}\\h{1,4})?::\\h{1,4}:\\g<ls32>|(?:(?:\\h{1,4}:){,4}\\h{1,4})?::\\g<ls32>|(?:(?:\\h{1,4}:){,5}\\h{1,4})?::\\h{1,4}|(?:(?:\\h{1,4}:){,6}\\h{1,4})?::)|(?<IPvFuture>v\\h++\\.[!$&-.0-;=A-Z_a-z~]++))\\])|\\g<IPv4address>|(?<reg-name>(?:%\\h\\h|[!$&-.0-9;=A-Z_a-z~])++))?(?::(?<port>\\d*+))?)(?<path-abempty>(?:\\/(?<segment>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~])*+))*+)|(?<path-absolute>\\/(?:(?<segment-nz>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~])++)(?:\\/\\g<segment>)*+)?)|(?<path-noscheme>(?<segment-nz-nc>(?:%\\h\\h|[!$&-.0-9;=@-Z_a-z~])++)(?:\\/\\g<segment>)*+)|(?<path-empty>))(?:\\?(?<query>[^#]*+))?(?:\\#(?<fragment>(?:%\\h\\h|[!$&-.0-;=@-Z_a-z~\\/?])*+))?)\\z",
+                    "flags": "",
+                    "status": "fixed",
+                    "note": "patched variant from Ruby 3.1.4"
+                }
+            ]
+        },
+        {
+            "id": "RDOC-CALL-SEQ-REDOS",
+            "title": "ReDoS in RDoc::Comment#extract_call_seq (call-seq parsing)",
+            "language": "ruby",
+            "severity": "medium",
+            "packages": [
+                "ruby",
+                "rdoc"
+            ],
+            "affected": [
+                "rdoc < 6.5.0",
+                "ruby 3.1.x (bundled rdoc 6.4.1.1)"
+            ],
+            "references": [
+                "https://github.com/ruby/rdoc/commit/1311ca8c50",
+                "https://github.com/ruby/rdoc/pull/995",
+                "https://github.com/ruby/ruby/commit/c2871161b453b37b444a759ebec6260c2c0fd0a4"
+            ],
+            "notes": [
+                "No CVE was assigned. Fixed upstream in rdoc 6.5.0 by commit 1311ca8c50 ('Fix polynominal backtracking').",
+                "The vulnerable inner expression is applied to the captured body of a :call-seq: comment. Many blank lines followed by a non-matching line make Onigmo backtrack exponentially; the outer call-seq expression is a second, separate hazard in the same method.",
+                "The scanner records Ruby /m as the flag 's'."
+            ],
+            "patterns": [
+                {
+                    "pattern": "(^\\s*\\n)+^(\\s*\\w+)",
+                    "flags": "s",
+                    "status": "vulnerable",
+                    "witness": {
+                        "prefix": "",
+                        "pump": "\n",
+                        "suffix": "",
+                        "breaker": "!",
+                        "kind": "exponential",
+                        "note": "blank lines followed by a non-matching character"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "H1-1485717-IPADDR-REDOS",
+            "title": "ReDoS in IPAddr#mask! prefix parsing",
+            "language": "ruby",
+            "severity": "medium",
+            "packages": [
+                "ruby",
+                "ipaddr"
+            ],
+            "affected": [
+                "ruby 3.1.x and earlier (bundled ipaddr gem)",
+                "ipaddr gem <= 1.2.4"
+            ],
+            "references": [
+                "https://hackerone.com/reports/1485717",
+                "https://github.com/ruby/ipaddr/blob/v1.2.4/lib/ipaddr.rb#L525"
+            ],
+            "notes": [
+                "No CVE was assigned. The report was closed as resolved by the Ruby 3.2 regexp memoisation optimisation, so Ruby 3.1.x remains affected.",
+                "IPAddr.new(\"0.0.0.0/\" + \"1\" * N + \".\") grows quadratically. The call is reachable from Rails ActionDispatch::RemoteIp through X-Forwarded-For.",
+                "The regexp itself was not changed upstream."
+            ],
+            "patterns": [
+                {
+                    "pattern": "\\A(0|[1-9]+\\d*)\\z",
+                    "flags": "",
+                    "status": "vulnerable",
+                    "witness": {
+                        "prefix": "",
+                        "pump": "1",
+                        "suffix": ".",
+                        "breaker": "",
+                        "kind": "polynomial",
+                        "note": "prefix-length digits followed by a non-digit"
+                    }
+                }
+            ],
+            "match_core": false
+        }
+    ]
+}
