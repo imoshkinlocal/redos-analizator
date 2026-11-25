@@ -20,7 +20,11 @@ from helpers import make_candidate
 
 def _settings(config):
     settings = VerificationSettings.from_config(config)
-    settings.exponential_sizes = [10, 12, 14, 16, 18]
+    # Keep the last step well above the 5 ms absolute-time gate in _confirm:
+    # on a fast runner an 18-character attack string finishes in 2-3 ms, so
+    # the confirmation becomes a coin flip.  At 24 characters the same pattern
+    # takes hundreds of milliseconds on every CPython from 3.9 to 3.13.
+    settings.exponential_sizes = [16, 18, 20, 22, 24]
     settings.polynomial_sizes = [32, 64, 128]
     settings.timeout_s = 1.5
     settings.budget_s = 5.0
