@@ -9,12 +9,13 @@ venv/
 build/
 dist/
 
-# scanner artefacts
-.redos-cache/
-reports/
-.tmp/
-pkgs/
-*.whl
+# scanner artefacts (repository root only: the package has its own
+# debian_redos/reports directory that must stay tracked)
+/.redos-cache/
+/reports/
+/.tmp/
+/pkgs/
+/*.whl
 *.sqlite3
 *.sqlite3-wal
 *.sqlite3-shm
